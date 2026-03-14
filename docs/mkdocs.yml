@@ -72,21 +72,21 @@ markdown_extensions:
       alternate_style: true
 
 nav:
-  - home: index.md
-  - quick start: quick-start.md
-  - core concepts:
-      - overview: concepts/index.md
-      - sessions & resync: concepts/sessions.md
-      - registration & confirmation: concepts/registration.md
-      - authentication & mfa: concepts/authentication.md
-      - roles: concepts/roles.md
-      - multi-tenant mapping (user_id): concepts/multi-tenant.md
-      - providers: concepts/providers.md
-      - standalone auth: concepts/standalone.md
-  - guides:
-      - express middleware: guides/express-middleware.md
-      - admin ui: guides/admin-ui.md
-      - mfa patterns: guides/mfa.md
-  - api:
-      - overview: api/index.md
-      - errors: api/errors.md
+  - Home: index.md
+  - Quick Start: quick-start.md
+  - Core Concepts:
+      - Overview: concepts/index.md
+      - Sessions & Resync: concepts/sessions.md
+      - Registration & Confirmation: concepts/registration.md
+      - Authentication & MFA: concepts/authentication.md
+      - Roles: concepts/roles.md
+      - Multi-Tenant Mapping: concepts/multi-tenant.md
+      - OAuth Providers: concepts/providers.md
+      - Standalone Auth: concepts/standalone.md
+  - Guides:
+      - Express Middleware: guides/express-middleware.md
+      - Admin UI: guides/admin-ui.md
+      - MFA Patterns: guides/mfa.md
+  - API:
+      - Reference: api/index.md
+      - Errors: api/errors.md
