@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-lib
+*.tsbuildinfo
+.env
+.env.local
+.claude
+packages/landing

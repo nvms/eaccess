@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {{ super() }}
+  <style>
+    .llms-txt-link {
+      color: var(--md-primary-bg-color);
+      text-decoration: none;
+      font-size: 0.65rem;
+      font-weight: 500;
+      opacity: 0.7;
+      white-space: nowrap;
+      padding: 0.4rem;
+      transition: opacity 0.2s;
+    }
+    .llms-txt-link:hover {
+      opacity: 1;
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const headerOption = document.querySelector('.md-header__option');
+      if (headerOption) {
+        const link = document.createElement('a');
+        link.href = '{{ config.site_url }}llms.txt';
+        link.className = 'md-header__button llms-txt-link';
+        link.textContent = 'llms.txt';
+        link.title = 'View llms.txt';
+        headerOption.parentNode.insertBefore(link, headerOption);
+      }
+    });
+  </script>
+{% endblock %}

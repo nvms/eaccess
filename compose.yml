@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: eaccess-postgres
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: easy_auth_test
+      POSTGRES_USER: test_user
+      POSTGRES_PASSWORD: test_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - eaccess_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test_user -d easy_auth_test"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  eaccess_postgres_data:

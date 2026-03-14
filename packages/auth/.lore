@@ -1,0 +1,41 @@
+-- core pattern --
+
+createAuthMiddleware adds req.auth to every request. all auth operations go through req.auth.
+
+createAuthTables must be called before first use - it creates/migrates tables with your configured tablePrefix.
+
+-- multi-tenancy --
+
+eaccess manages its own auth tables but links to YOUR user tables via user_id. two approaches:
+1. pass user_id during register(): req.auth.register(email, password, yourUserId)
+2. let eaccess auto-generate a UUID: req.auth.register(email, password) -> account.user_id is a UUID
+
+for OAuth, use createUser callback in config to create your user record and return the ID.
+
+-- 2FA login flow --
+
+login() throws SecondFactorRequiredError when 2FA is enabled. catch it, return 202 with availableMethods, then verify code via req.auth.twoFactor.verify.totp(code) and call completeTwoFactorLogin().
+
+-- websocket auth --
+
+authenticateRequest(authConfig, req, sessionMiddleware?) works with raw IncomingMessage for websocket upgrades. it checks session first, falls back to remember token, validates account status. returns { account, source } where source is "session", "remember", or null.
+
+integrates with mesh-kit via authenticateConnection option on MeshServer.
+
+-- roles --
+
+bitmask-based. use bitwise operations: (rolemask & AuthRole.Admin) === AuthRole.Admin. addRoleToUser uses OR, removeRoleFromUser uses AND with complement.
+
+defineRoles('owner', 'editor', 'viewer') creates a custom role set. pass it as config.roles so getRoleNames() uses your names instead of default AuthRole. max 31 roles (postgres INTEGER limit). the admin panel reads config.roles from the backend, so custom roles show up automatically in the UI.
+
+-- database tables --
+
+with tablePrefix "auth_": auth_accounts, auth_confirmations, auth_remembers, auth_resets, auth_providers, auth_2fa_methods, auth_2fa_tokens, auth_activity_log
+
+-- pitfalls --
+
+OAuth callback can throw "already have an account" when email exists with a different login method. handle this in the callback route.
+
+resyncSession() re-reads account data from DB into session. call after role changes or status updates to avoid stale session data.
+
+remember tokens are separate from sessions. logoutEverywhere() clears both. logoutEverywhereElse() clears all except current session.

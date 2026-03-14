@@ -1,0 +1,92 @@
+site_name: eaccess auth
+site_description: session-first express auth with admin ui, mfa, roles, oauth, and multi-tenant-friendly user mapping
+site_url: https://nvms.github.io/eaccess/
+
+plugins:
+  - search
+  - pygments:
+      light: solarized-light
+      dark: lightbulb
+  - llmstxt:
+      markdown_description: |
+        Express authentication middleware for PostgreSQL sessions. Provides registration, login, roles, MFA, OAuth providers, remember-me, and an admin UI. Maps to your own user table via optional user_id.
+      sections:
+        Getting Started:
+          - index.md: project overview and core principles
+          - quick-start.md: installation and basic setup
+        Core Concepts:
+          - concepts/index.md: fundamentals
+          - concepts/sessions.md: sessions and resync
+          - concepts/registration.md: registration and confirmation
+          - concepts/authentication.md: login flows and MFA
+          - concepts/roles.md: roles and permissions
+          - concepts/multi-tenant.md: mapping user_id for external tenants
+          - concepts/providers.md: oauth providers
+          - concepts/standalone.md: standalone auth without express context
+        Guides:
+          - guides/express-middleware.md: using the middleware
+          - guides/admin-ui.md: running the admin ui
+          - guides/mfa.md: 2fa setup and ux patterns
+        API Reference:
+          - api/index.md: api surface overview
+          - api/errors.md: comprehensive list of errors thrown. when and why
+
+theme:
+  name: material
+  custom_dir: overrides
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: lime
+      toggle:
+        icon: material/brightness-4
+        name: switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.highlight
+    - search.share
+    - content.code.copy
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - home: index.md
+  - quick start: quick-start.md
+  - core concepts:
+      - overview: concepts/index.md
+      - sessions & resync: concepts/sessions.md
+      - registration & confirmation: concepts/registration.md
+      - authentication & mfa: concepts/authentication.md
+      - roles: concepts/roles.md
+      - multi-tenant mapping (user_id): concepts/multi-tenant.md
+      - providers: concepts/providers.md
+      - standalone auth: concepts/standalone.md
+  - guides:
+      - express middleware: guides/express-middleware.md
+      - admin ui: guides/admin-ui.md
+      - mfa patterns: guides/mfa.md
+  - api:
+      - overview: api/index.md
+      - errors: api/errors.md

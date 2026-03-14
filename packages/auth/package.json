@@ -1,0 +1,63 @@
+{
+  "name": "@eaccess/auth",
+  "version": "1.0.0",
+  "description": "Database-agnostic Express authentication middleware for PostgreSQL",
+  "type": "module",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest",
+    "test:run": "vitest run"
+  },
+  "keywords": [
+    "express",
+    "authentication",
+    "session",
+    "postgres",
+    "middleware"
+  ],
+  "author": "Jonathan Pyers",
+  "license": "MIT",
+  "dependencies": {
+    "@eaccess/totp": "^1.0.2",
+    "@prsm/hash": "^2.0.1",
+    "@prsm/ms": "^1.0.1",
+    "bowser": "^2.11.0",
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
+    "@types/express": "^5.0.0",
+    "@types/express-session": "^1.18.2",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.15.5",
+    "cookie-parser": "^1.4.7",
+    "express-session": "^1.18.2",
+    "pg": "^8.16.3",
+    "supertest": "^7.1.4",
+    "tsup": "^8.3.5",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
+  },
+  "peerDependencies": {
+    "express-session": "^1.18.1"
+  }
+}
