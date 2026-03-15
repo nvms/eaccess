@@ -1,4 +1,8 @@
-# eaccess
+<p align="center">
+  <img src=".github/logo.svg" width="80" height="80" alt="eaccess logo">
+</p>
+
+<h1 align="center">eaccess</h1>
 
 Session-based Express authentication for PostgreSQL.
 
