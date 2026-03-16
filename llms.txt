@@ -1,0 +1,34 @@
+# eaccess auth
+
+> session-first express auth with admin ui, mfa, roles, oauth, and multi-tenant-friendly user mapping
+
+Express authentication middleware for PostgreSQL sessions. Provides registration, login, roles, MFA, OAuth providers, remember-me, and an admin UI. Maps to your own user table via optional user_id.
+
+
+## Getting Started
+
+- [Home](https://nvms.github.io/eaccess/index.md): project overview and core principles
+- [Quick Start](https://nvms.github.io/eaccess/quick-start/index.md): installation and basic setup
+
+## Core Concepts
+
+- [Overview](https://nvms.github.io/eaccess/concepts/index.md): fundamentals
+- [Sessions & Resync](https://nvms.github.io/eaccess/concepts/sessions/index.md): sessions and resync
+- [Registration & Confirmation](https://nvms.github.io/eaccess/concepts/registration/index.md): registration and confirmation
+- [Authentication & MFA](https://nvms.github.io/eaccess/concepts/authentication/index.md): login flows and MFA
+- [Roles](https://nvms.github.io/eaccess/concepts/roles/index.md): roles and permissions
+- [Multi-Tenant Mapping](https://nvms.github.io/eaccess/concepts/multi-tenant/index.md): mapping user_id for external tenants
+- [OAuth Providers](https://nvms.github.io/eaccess/concepts/providers/index.md): oauth providers
+- [Standalone Auth](https://nvms.github.io/eaccess/concepts/standalone/index.md): standalone auth without express context
+
+## Guides
+
+- [Express Middleware](https://nvms.github.io/eaccess/guides/express-middleware/index.md): using the middleware
+- [Admin UI](https://nvms.github.io/eaccess/guides/admin-ui/index.md): running the admin ui
+- [MFA Patterns](https://nvms.github.io/eaccess/guides/mfa/index.md): 2fa setup and ux patterns
+
+## API Reference
+
+- [Reference](https://nvms.github.io/eaccess/api/index.md): api surface overview
+- [Errors](https://nvms.github.io/eaccess/api/errors/index.md): comprehensive list of errors thrown. when and why
+
