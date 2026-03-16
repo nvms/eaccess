@@ -194,7 +194,11 @@ app.get('/auth/google/callback', async (req, res) => {
     await req.auth.providers.google.handleCallback(req);
     res.redirect('/dashboard');
   } catch (error) {
-    res.redirect('/login?error=oauth_failed');
+    if (error.message.includes('already have an account')) {
+      res.redirect('/login?error=email_taken');
+    } else {
+      res.redirect('/login?error=oauth_failed');
+    }
   }
 });
 ```
