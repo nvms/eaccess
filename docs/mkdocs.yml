@@ -5,8 +5,8 @@ site_url: https://nvms.github.io/eaccess/
 plugins:
   - search
   - pygments:
-      light: solarized-light
-      dark: lightbulb
+      light: tango
+      dark: monokai
   - llmstxt:
       markdown_description: |
         Express authentication middleware for PostgreSQL sessions. Provides registration, login, roles, MFA, OAuth providers, remember-me, and an admin UI. Maps to your own user table via optional user_id.
@@ -37,14 +37,14 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep purple
+      primary: black
       accent: purple
       toggle:
         icon: material/brightness-7
         name: switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: black
+      primary: custom
       accent: lime
       toggle:
         icon: material/brightness-4
