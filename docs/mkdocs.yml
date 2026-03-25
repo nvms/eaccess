@@ -80,6 +80,7 @@ nav:
       - Registration & Confirmation: concepts/registration.md
       - Authentication & MFA: concepts/authentication.md
       - Roles: concepts/roles.md
+      - Password Reset: concepts/password-reset.md
       - Multi-Tenant Mapping: concepts/multi-tenant.md
       - OAuth Providers: concepts/providers.md
       - Standalone Auth: concepts/standalone.md

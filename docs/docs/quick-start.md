@@ -60,19 +60,3 @@ app.use("/admin", createAdminUI(authConfig));
 ```
 
 The admin panel is served from your Express app. It reads your auth config, so custom roles and all user data show up automatically.
-
-## Custom Roles
-
-```typescript
-import { defineRoles } from "@eaccess/auth";
-
-const Roles = defineRoles("admin", "owner", "editor", "viewer");
-
-const authConfig = {
-  db: pool,
-  tablePrefix: "auth_",
-  roles: Roles,
-};
-```
-
-`defineRoles` assigns sequential powers of 2. The admin UI and `getRoleNames()` use whatever you define here. If you don't set `roles`, the built-in `AuthRole` enum (21 predefined roles) is used.

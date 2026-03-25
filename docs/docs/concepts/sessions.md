@@ -32,17 +32,4 @@ On subsequent requests, the middleware checks for the cookie and restores the se
 
 ## Activity Logging
 
-The `ActivityLogger` records actions like login, failed login, 2FA prompts, remember token creation, role changes, and more. It parses user agent strings for browser/OS/device info and stores metadata as JSON.
-
-Activity logging is enabled by default. Configure it in `AuthConfig`:
-
-```typescript
-const authConfig = {
-  db: pool,
-  activityLog: {
-    enabled: true,
-    maxEntries: 10000,
-    actions: [AuthActivityAction.Login, AuthActivityAction.FailedLogin],
-  },
-};
-```
+The `ActivityLogger` records actions like login, failed login, 2FA prompts, remember token creation, role changes, and more. It parses user agent strings for browser/OS/device info and stores metadata as JSON. Activity logging is enabled by default. See the [Express Middleware](../guides/express-middleware.md) guide for configuration options.

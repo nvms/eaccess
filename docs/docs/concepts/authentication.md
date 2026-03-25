@@ -5,20 +5,7 @@ Login checks password, account status, email verification, and optional two-fact
 ## Login
 
 ```typescript
-app.post("/login", async (req, res) => {
-  try {
-    await req.auth.login(req.body.email, req.body.password, req.body.remember);
-    res.json({ success: true });
-  } catch (error) {
-    if (error.name === "SecondFactorRequiredError") {
-      return res.status(202).json({
-        requiresTwoFactor: true,
-        availableMethods: error.availableMethods,
-      });
-    }
-    res.status(401).json({ error: error.message });
-  }
-});
+await req.auth.login(email, password, remember);
 ```
 
 The login method:
@@ -38,48 +25,20 @@ Return the available methods to the client so it can show the appropriate UI. Do
 
 ## Completing 2FA
 
+After verification succeeds, call `completeTwoFactorLogin()` to finish the login:
+
 ```typescript
-app.post("/verify-2fa", async (req, res) => {
-  const { code, method } = req.body;
-
-  switch (method) {
-    case "totp":
-      await req.auth.twoFactor.verify.totp(code);
-      break;
-    case "email":
-      await req.auth.twoFactor.verify.email(code);
-      break;
-    case "sms":
-      await req.auth.twoFactor.verify.sms(code);
-      break;
-    case "backup":
-      await req.auth.twoFactor.verify.backupCode(code);
-      break;
-    case "otp":
-      await req.auth.twoFactor.verify.otp(code);
-      break;
-  }
-
-  await req.auth.completeTwoFactorLogin();
-  res.json({ success: true });
-});
+await req.auth.twoFactor.verify.totp(code);
+await req.auth.completeTwoFactorLogin();
 ```
 
-`verify.otp()` is a smart verifier that tries both email and SMS OTP methods automatically.
+Verifiers: `verify.totp()`, `verify.email()`, `verify.sms()`, `verify.backupCode()`, `verify.otp()` (tries email and SMS automatically).
+
+See the [MFA Patterns](../guides/mfa.md) guide for full implementation examples including OTP delivery.
 
 ## Remember Me
 
-Login with `remember: true` creates a persistent token in `{prefix}remembers` and sets an httpOnly cookie. On future requests, the middleware auto-restores the session from the cookie.
-
-Configure the duration and cookie name in `AuthConfig`:
-
-```typescript
-const authConfig = {
-  db: pool,
-  rememberDuration: "30d",
-  rememberCookieName: "remember_token",
-};
-```
+Login with `remember: true` creates a persistent token in `{prefix}remembers` and sets an httpOnly cookie. On future requests, the middleware auto-restores the session from the cookie. Configure `rememberDuration` and `rememberCookieName` in `AuthConfig`.
 
 ## Logout
 
