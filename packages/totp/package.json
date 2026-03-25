@@ -1,6 +1,6 @@
 {
   "name": "@eaccess/totp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "TOTP generation and verification for @eaccess/auth",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
