@@ -5,4 +5,6 @@ dist-lib
 .env
 .env.local
 .claude
+CLAUDE.md
+audit
 packages/landing

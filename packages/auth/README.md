@@ -337,7 +337,7 @@ app.post('/login', async (req, res) => {
       // User needs to complete MFA
       return res.status(202).json({
         requiresTwoFactor: true,
-        availableMethods: error.challenge,
+        availableMethods: error.availableMethods,
         message: 'Please complete two-factor authentication'
       });
     }
@@ -348,10 +348,10 @@ app.post('/login', async (req, res) => {
 
 ### MFA Challenge Structure
 
-The `SecondFactorRequiredError.challenge` contains:
+The `SecondFactorRequiredError.availableMethods` contains:
 
 ```typescript
-interface TwoFactorChallenge {
+interface AvailableMethods {
   totp?: boolean;                    // TOTP available
   email?: {
     otpValue: string;               // The actual OTP code that should be sent via email
@@ -361,17 +361,13 @@ interface TwoFactorChallenge {
     otpValue: string;               // The actual OTP code that should be sent via SMS
     maskedContact: string;          // "+1***90"
   };
-  selectors?: {
-    email?: string;                 // Internal selector (stored in session & database)
-    sms?: string;                   // Internal selector (stored in session & database)
-  };
 }
 ```
 
-**Important**: The `otpValue` fields contain the actual codes that should be delivered to the user. The `selectors` are internal identifiers used by the library. In production, you should:
+**Important**: The `otpValue` fields contain the actual codes that should be delivered to the user. In production, you should:
 1. Send the `otpValue` codes via your email/SMS service
-2. Remove both `otpValue` and `selectors` from client responses for security
-3. Only return the `maskedContact` to the frontend (selectors are automatically stored in the user's session)
+2. Remove `otpValue` from client responses for security
+3. Only return the `maskedContact` to the frontend
 
 ### Completing MFA Login
 
@@ -875,7 +871,7 @@ app.post('/login', async (req, res) => {
     if (error instanceof SecondFactorRequiredError) {
       return res.status(202).json({
         requiresTwoFactor: true,
-        availableMethods: error.challenge
+        availableMethods: error.availableMethods
       });
     }
     if (error instanceof InvalidTwoFactorCodeError) {
