@@ -786,7 +786,7 @@ describe("AuthContext", () => {
   beforeAll(async () => {
     pool = new Pool({
       host: "localhost",
-      port: 5433,
+      port: parseInt(process.env.PGPORT || "5433"),
       database: "easy_auth_test",
       user: "test_user",
       password: "test_password",
@@ -924,7 +924,7 @@ describe("Schema operations", () => {
   beforeAll(async () => {
     pool = new Pool({
       host: "localhost",
-      port: 5433,
+      port: parseInt(process.env.PGPORT || "5433"),
       database: "easy_auth_test",
       user: "test_user",
       password: "test_password",
@@ -1042,7 +1042,7 @@ describe("authenticateRequest", () => {
   beforeAll(async () => {
     pool = new Pool({
       host: "localhost",
-      port: 5433,
+      port: parseInt(process.env.PGPORT || "5433"),
       database: "easy_auth_test",
       user: "test_user",
       password: "test_password",
@@ -1149,7 +1149,7 @@ describe("Standalone role functions", () => {
   beforeAll(async () => {
     pool = new Pool({
       host: "localhost",
-      port: 5433,
+      port: parseInt(process.env.PGPORT || "5433"),
       database: "easy_auth_test",
       user: "test_user",
       password: "test_password",

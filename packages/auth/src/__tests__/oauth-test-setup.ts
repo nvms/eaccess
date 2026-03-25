@@ -13,7 +13,7 @@ declare module "express-session" {
 export async function createTestDatabase() {
   const pool = new Pool({
     host: "localhost",
-    port: 5433,
+    port: parseInt(process.env.PGPORT || "5433"),
     database: "easy_auth_test",
     user: "test_user",
     password: "test_password",
