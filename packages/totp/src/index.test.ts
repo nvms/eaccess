@@ -1,6 +1,6 @@
 import { base32 } from "@scure/base";
 import { describe, expect, it } from "vitest";
-import Otp, { InvalidHashFunctionError, InvalidOtpLengthError, InvalidSecretError } from "./index";
+import Otp, { InvalidHashFunctionError, InvalidIntervalError, InvalidOtpLengthError, InvalidSecretError } from "./index";
 
 describe("Otp", () => {
   it("should generate a secret of default strength", () => {
@@ -70,6 +70,13 @@ describe("Otp", () => {
     expect(uri).toContain("otpauth://totp/app.example.com:john.doe%40example.org");
     expect(uri).toContain(`secret=${secret}`);
     expect(uri).toContain("issuer=app.example.com");
+  });
+
+  it("should encode issuer with special characters in URI", () => {
+    const secret = Otp.createSecret();
+    const uri = Otp.createTotpKeyUriForQrCode("My App/Service", "user@example.com", secret);
+    expect(uri).toContain("otpauth://totp/My%20App%2FService:");
+    expect(uri).toContain("issuer=My%20App%2FService");
   });
 
   it("should throw an error for invalid secret length", () => {
@@ -227,6 +234,46 @@ describe("Otp - 6 Character Length", () => {
     const totp = Otp.generateTotp(secret, futureTime, 6);
     const isValid = Otp.verifyTotp(secret, totp, undefined, undefined, undefined, 6);
     expect(isValid).toBe(false);
+  });
+
+  it("should throw for zero interval", () => {
+    const secret = Otp.createSecret();
+    expect(() => Otp.generateTotp(secret, undefined, 6, 0)).toThrow(InvalidIntervalError);
+  });
+
+  it("should throw for negative interval", () => {
+    const secret = Otp.createSecret();
+    expect(() => Otp.generateTotp(secret, undefined, 6, -30)).toThrow(InvalidIntervalError);
+  });
+
+  it("should use symmetric window when lookAheadSteps is not provided", () => {
+    const secret = Otp.createSecret();
+    const now = Math.floor(Date.now() / 1000);
+    const interval = 30;
+    const oneStepAhead = now + interval;
+    const totp = Otp.generateTotp(secret, oneStepAhead);
+    expect(Otp.verifyTotp(secret, totp, 0, undefined, now)).toBe(false);
+    expect(Otp.verifyTotp(secret, totp, 1, undefined, now)).toBe(true);
+  });
+
+  it("should allow asymmetric window when lookAheadSteps is explicit", () => {
+    const secret = Otp.createSecret();
+    const now = Math.floor(Date.now() / 1000);
+    const interval = 30;
+    const oneStepAhead = now + interval;
+    const totp = Otp.generateTotp(secret, oneStepAhead);
+    expect(Otp.verifyTotp(secret, totp, 2, 0, now)).toBe(false);
+    expect(Otp.verifyTotp(secret, totp, 0, 1, now)).toBe(true);
+  });
+
+  it("should be strict with window of 0", () => {
+    const secret = Otp.createSecret();
+    const now = Math.floor(Date.now() / 1000);
+    const totp = Otp.generateTotp(secret, now);
+    expect(Otp.verifyTotp(secret, totp, 0, undefined, now)).toBe(true);
+    const oneStepAgo = now - 30;
+    const oldTotp = Otp.generateTotp(secret, oneStepAgo);
+    expect(Otp.verifyTotp(secret, oldTotp, 0, undefined, now)).toBe(false);
   });
 
   it("should verify RFC 6238 test vectors for SHA-1 with 6-character OTP", () => {

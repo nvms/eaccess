@@ -20,10 +20,15 @@ const uri = Otp.createTotpKeyUriForQrCode("MyApp", "user@example.com", secret);
 
 ## Verification Window
 
+The third argument controls drift tolerance in both directions (behind and ahead):
+
 ```typescript
-// allow 1 step of drift (default)
+// 1 step of drift in each direction (default is 2)
 Otp.verifyTotp(secret, code, 1);
 
 // strict - no drift tolerance
 Otp.verifyTotp(secret, code, 0);
+
+// asymmetric - 2 steps behind, 0 ahead
+Otp.verifyTotp(secret, code, 2, 0);
 ```

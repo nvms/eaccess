@@ -5,6 +5,7 @@ export class InvalidOtpLengthError extends Error {}
 export class InvalidSecretError extends Error {}
 export class InvalidHashFunctionError extends Error {}
 export class InvalidSecretStrengthError extends Error {}
+export class InvalidIntervalError extends Error {}
 
 class Otp {
   static OTP_LENGTH_MIN = 6;
@@ -46,7 +47,7 @@ class Otp {
    * @throws {Error} - Throws an error if any of the parameters are invalid or missing.
    */
   static createTotpKeyUriForQrCode(issuer: string, accountName: string, secret: string): string {
-    return `otpauth://totp/${issuer}:${encodeURIComponent(accountName)}?secret=${secret}&issuer=${issuer}`;
+    return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(accountName)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`;
   }
 
   /**
@@ -75,12 +76,14 @@ class Otp {
       throw new InvalidOtpLengthError();
     }
 
-    secret = secret ? secret : "";
-    t = t ? t : Math.floor(Date.now() / 1000);
-    t_x = t_x ? t_x : Otp.INTERVAL_LENGTH_DEFAULT;
-    t_0 = t_0 ? t_0 : Otp.EPOCH_DEFAULT;
+    if (t_x <= 0) {
+      throw new InvalidIntervalError();
+    }
 
-    const c_t = Math.max(0, Math.floor((t - t_0) / t_x)); // Ensure c_t is non-negative
+    secret = secret ?? "";
+    t = t ?? Math.floor(Date.now() / 1000);
+
+    const c_t = Math.max(0, Math.floor((t - t_0) / t_x));
 
     secret = secret.replace(/[^A-Za-z2-7]/g, "").toUpperCase();
 
@@ -144,13 +147,15 @@ class Otp {
     secret: string,
     otpValue: string,
     lookBehindSteps: number = 2,
-    lookAheadSteps: number = 2,
+    lookAheadSteps?: number,
     t: number = Math.floor(Date.now() / 1000),
     otpLength: number = Otp.OTP_LENGTH_DEFAULT,
     t_x: number = Otp.INTERVAL_LENGTH_DEFAULT,
     t_0: number = Otp.EPOCH_DEFAULT,
     hashFunction: number = Otp.HASH_FUNCTION_DEFAULT,
   ): boolean {
+    const ahead = lookAheadSteps ?? lookBehindSteps;
+
     otpValue = otpValue.replace(/[^0-9]/g, "");
 
     if (otpValue.length < Otp.OTP_LENGTH_MIN || otpValue.length > Otp.OTP_LENGTH_MAX) {
@@ -161,7 +166,7 @@ class Otp {
       return false;
     }
 
-    for (let s = -lookBehindSteps; s <= lookAheadSteps; s++) {
+    for (let s = -lookBehindSteps; s <= ahead; s++) {
       const expectedOtpValue = this.generateTotp(secret, t + t_x * s, otpLength, t_x, t_0, hashFunction);
       if (crypto.timingSafeEqual(Buffer.from(expectedOtpValue), Buffer.from(otpValue))) {
         return true;
