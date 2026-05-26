@@ -242,7 +242,11 @@ async function startDevServer() {
       const totpProvider = new TotpProvider(authConfig);
       const isValid = totpProvider.verify(method.rows[0].secret, code);
 
-      res.json({ success: isValid });
+      if (isValid) {
+        res.json({ success: true });
+      } else {
+        res.status(400).json({ error: "Invalid TOTP code" });
+      }
     } catch (error) {
       res.status(500).json({ error: "Failed to test TOTP code" });
     }
