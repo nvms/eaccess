@@ -1,0 +1,41 @@
+name: publish
+on:
+  push:
+    tags: ['*@*']
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: parse package and version from tag
+        id: parse
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          PKG="${TAG%@*}"
+          VERSION="${TAG#*@}"
+          echo "pkg=${PKG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${PKG} @ ${VERSION}"
+      - name: verify tag matches package.json version
+        working-directory: packages/${{ steps.parse.outputs.pkg }}
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$PKG_VERSION" != "${{ steps.parse.outputs.version }}" ]; then
+            echo "tag version ${{ steps.parse.outputs.version }} does not match package.json version $PKG_VERSION"
+            exit 1
+          fi
+      - name: install
+        working-directory: packages/${{ steps.parse.outputs.pkg }}
+        run: npm ci
+      - name: build
+        working-directory: packages/${{ steps.parse.outputs.pkg }}
+        run: npm run build
+      - name: publish
+        working-directory: packages/${{ steps.parse.outputs.pkg }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
