@@ -80,6 +80,13 @@ export interface AuthConfig {
     totpWindow?: number; // defaults to 1
     backupCodesCount?: number; // defaults to 10
   };
+
+  impersonation?: {
+    enabled?: boolean; // defaults to false - explicit opt-in
+    defaultTtl?: string | null; // e.g. "1h" - null means no automatic expiry
+    maxTtl?: string; // hard cap regardless of caller-provided ttl
+    canImpersonate?: (actor: AuthAccount, target: AuthAccount) => boolean | Promise<boolean>;
+  };
 }
 
 export interface AuthAccount {
@@ -157,6 +164,7 @@ export interface AuthReset {
 export interface AuthActivity {
   id: number;
   account_id: number | null;
+  actor_account_id: number | null;
   action: string;
   ip_address: string | null;
   user_agent: string | null;
@@ -182,6 +190,7 @@ export interface AuthSession {
   verified: boolean;
   hasPassword: boolean;
   shouldForceLogout?: boolean;
+  actor?: ImpersonationActor;
   awaitingTwoFactor?: {
     accountId: number;
     expiresAt: Date;
@@ -194,6 +203,40 @@ export interface AuthSession {
       sms?: string;
     };
   };
+}
+
+export interface ImpersonationActor {
+  accountId: number;
+  userId: string;
+  email: string;
+  rolemask: number;
+  forceLogout: number;
+  startedAt: Date;
+  expiresAt?: Date;
+  reason?: string;
+}
+
+export interface ImpersonationInfo {
+  actor: {
+    accountId: number;
+    userId: string;
+    email: string;
+    rolemask: number;
+  };
+  target: {
+    accountId: number;
+    userId: string;
+    email: string;
+    rolemask: number;
+  };
+  startedAt: Date;
+  expiresAt?: Date;
+  reason?: string;
+}
+
+export interface StartImpersonationOptions {
+  reason?: string;
+  ttl?: string | number;
 }
 
 export enum TwoFactorMechanism {
@@ -299,6 +342,10 @@ export const AuthActivityAction = {
   TwoFactorFailed: "two_factor_failed",
   TwoFactorDisabled: "two_factor_disabled",
   BackupCodeUsed: "backup_code_used",
+  ImpersonationStarted: "impersonation_started",
+  ImpersonationStopped: "impersonation_stopped",
+  ImpersonationExpired: "impersonation_expired",
+  ImpersonationRejected: "impersonation_rejected",
 } as const;
 
 export type AuthActivityActionType = (typeof AuthActivityAction)[keyof typeof AuthActivityAction];
@@ -365,6 +412,14 @@ export interface AuthManager {
 
   // session-dependent admin functions
   loginAsUserBy(identifier: { accountId?: number; email?: string; userId?: string }): Promise<void>;
+
+  // impersonation
+  startImpersonation(identifier: { accountId?: number; email?: string; userId?: string }, options?: StartImpersonationOptions): Promise<void>;
+  stopImpersonation(): Promise<void>;
+  isImpersonating(): boolean;
+  getActorId(): number | null;
+  getActorEmail(): string | null;
+  getImpersonationInfo(): ImpersonationInfo | null;
 
   providers: {
     github?: OAuthProvider;

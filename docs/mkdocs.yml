@@ -23,6 +23,7 @@ plugins:
           - concepts/multi-tenant.md: mapping user_id for external tenants
           - concepts/providers.md: oauth providers
           - concepts/standalone.md: standalone auth without express context
+          - concepts/impersonation.md: admin-as-user sessions with actor preservation and audit
         Guides:
           - guides/express-middleware.md: using the middleware
           - guides/admin-ui.md: running the admin ui
@@ -84,6 +85,7 @@ nav:
       - Multi-Tenant Mapping: concepts/multi-tenant.md
       - OAuth Providers: concepts/providers.md
       - Standalone Auth: concepts/standalone.md
+      - Impersonation: concepts/impersonation.md
   - Guides:
       - Express Middleware: guides/express-middleware.md
       - Admin UI: guides/admin-ui.md

@@ -1,7 +1,7 @@
 import hash from "@prsm/hash";
 import ms from "@prsm/ms";
 import type { Request, Response } from "express";
-import type { AuthConfig, AuthAccount, AuthSession, TokenCallback, AuthManager as IAuthManager, OAuthProvider } from "./types.js";
+import type { AuthConfig, AuthAccount, AuthSession, TokenCallback, AuthManager as IAuthManager, OAuthProvider, StartImpersonationOptions, ImpersonationInfo, ImpersonationActor } from "./types.js";
 import { AuthStatus, AuthRole, AuthActivityAction } from "./types.js";
 import { AuthQueries } from "./queries.js";
 import { ActivityLogger } from "./activity-logger.js";
@@ -22,6 +22,10 @@ import {
   UserNotLoggedInError,
   SecondFactorRequiredError,
   TwoFactorExpiredError,
+  ImpersonationDisabledError,
+  ImpersonationNotAllowedError,
+  AlreadyImpersonatingError,
+  NotImpersonatingError,
 } from "./errors.js";
 import { GitHubProvider, GoogleProvider, AzureProvider } from "./providers/index.js";
 import { TwoFactorManager } from "./two-factor/index.js";
@@ -184,6 +188,41 @@ export class AuthManager implements IAuthManager {
     const lastResync = new Date(this.req.session.auth!.lastResync);
 
     if (!force && lastResync && lastResync.getTime() > Date.now() - interval) {
+      return;
+    }
+
+    if (this.isImpersonating()) {
+      const actorSnapshot = this.req.session.auth!.actor!;
+
+      // expiry first - revert to actor before any other action
+      if (actorSnapshot.expiresAt && new Date() >= new Date(actorSnapshot.expiresAt)) {
+        await this.stopImpersonationInternal("expired");
+        return;
+      }
+
+      const actorAccount = await this.queries.findAccountById(actorSnapshot.accountId);
+      if (!actorAccount || actorAccount.status !== AuthStatus.Normal || actorAccount.force_logout > actorSnapshot.forceLogout) {
+        // actor is no longer valid - kill the whole session.
+        // clear actor first so the Logout activity row doesn't reference a deleted/invalid actor via FK
+        this.req.session.auth!.actor = undefined;
+        await this.logout();
+        return;
+      }
+
+      // target may have been modified by the admin while impersonating; refresh effective fields
+      const target = await this.queries.findAccountById(this.req.session.auth!.accountId);
+      if (!target) {
+        // target deleted mid-impersonation - revert to actor
+        await this.stopImpersonationInternal("target_gone");
+        return;
+      }
+
+      this.req.session.auth!.email = target.email;
+      this.req.session.auth!.status = target.status;
+      this.req.session.auth!.rolemask = target.rolemask;
+      this.req.session.auth!.verified = target.verified;
+      this.req.session.auth!.hasPassword = target.password !== null;
+      this.req.session.auth!.lastResync = new Date();
       return;
     }
 
@@ -459,11 +498,13 @@ export class AuthManager implements IAuthManager {
       this.setRememberCookie(null, new Date(0));
     }
 
-    this.req.session.auth = undefined;
-
+    // log BEFORE clearing the session so actor_account_id auto-pickup catches
+    // impersonation context (e.g. forced logout while impersonating)
     if (accountId && email) {
       await this.activityLogger.logActivity(accountId, AuthActivityAction.Logout, this.req, true, { email });
     }
+
+    this.req.session.auth = undefined;
   }
 
   /**
@@ -996,7 +1037,11 @@ export class AuthManager implements IAuthManager {
   async forceLogoutForUserBy(identifier: { accountId?: number; email?: string; userId?: string }): Promise<void> {
     const result = await authFunctions.forceLogoutForUserBy(this.config, identifier);
 
-    if (this.getId() === result.accountId) {
+    // the question is "did the owner of this session get force-logged-out?"
+    // when impersonating, the session is owned by the actor, not the effective (target) identity.
+    // force-logging-out the target should NOT kick the admin who is impersonating them.
+    const sessionOwnerId = this.isImpersonating() ? this.getActorId() : this.getId();
+    if (sessionOwnerId === result.accountId) {
       this.req.session.auth!.shouldForceLogout = true;
     }
   }
@@ -1004,6 +1049,9 @@ export class AuthManager implements IAuthManager {
   /**
    * Log in as another user (admin function).
    * Creates a new session as the target user without requiring their password.
+   * This is a destructive replacement of the current session - the original
+   * identity is lost. Prefer startImpersonation() when you need to retain the
+   * original identity and audit the action.
    *
    * @param identifier - Find user by accountId, email, or userId
    * @throws {UserNotFoundError} No account matches the identifier
@@ -1016,5 +1064,246 @@ export class AuthManager implements IAuthManager {
     }
 
     await this.onLoginSuccessful(account, false);
+  }
+
+  /**
+   * Check whether the current session is impersonating another user.
+   */
+  isImpersonating(): boolean {
+    return !!this.req.session?.auth?.actor;
+  }
+
+  /**
+   * Get the account id of the original (actor) user when impersonating.
+   * @returns Actor account id when impersonating, null otherwise
+   */
+  getActorId(): number | null {
+    return this.req.session?.auth?.actor?.accountId ?? null;
+  }
+
+  /**
+   * Get the email of the original (actor) user when impersonating.
+   * @returns Actor email when impersonating, null otherwise
+   */
+  getActorEmail(): string | null {
+    return this.req.session?.auth?.actor?.email ?? null;
+  }
+
+  /**
+   * Get a structured summary of the current impersonation session suitable
+   * for returning to a client (e.g. for rendering a banner).
+   * @returns ImpersonationInfo when impersonating, null otherwise
+   */
+  getImpersonationInfo(): ImpersonationInfo | null {
+    const auth = this.req.session?.auth;
+    if (!auth?.actor) return null;
+
+    return {
+      actor: {
+        accountId: auth.actor.accountId,
+        userId: auth.actor.userId,
+        email: auth.actor.email,
+        rolemask: auth.actor.rolemask,
+      },
+      target: {
+        accountId: auth.accountId,
+        userId: auth.userId,
+        email: auth.email,
+        rolemask: auth.rolemask,
+      },
+      startedAt: new Date(auth.actor.startedAt),
+      expiresAt: auth.actor.expiresAt ? new Date(auth.actor.expiresAt) : undefined,
+      reason: auth.actor.reason,
+    };
+  }
+
+  /**
+   * Begin impersonating another user while preserving the original (actor)
+   * identity. The effective session identity switches to the target. The
+   * actor's identity is recoverable via getActorId/getActorEmail/getImpersonationInfo
+   * and the session can be reverted via stopImpersonation().
+   *
+   * Requires `config.impersonation.enabled = true` and an allowed
+   * `canImpersonate(actor, target)` hook.
+   *
+   * @param identifier - Find target user by accountId, email, or userId
+   * @param options - Optional reason (for audit) and ttl override (capped by config.impersonation.maxTtl)
+   * @throws {UserNotLoggedInError} No active session
+   * @throws {ImpersonationDisabledError} config.impersonation.enabled is false
+   * @throws {AlreadyImpersonatingError} Another impersonation session is already active
+   * @throws {UserNotFoundError} No account matches the identifier
+   * @throws {ImpersonationNotAllowedError} canImpersonate returned false, or target is the actor
+   */
+  async startImpersonation(identifier: { accountId?: number; email?: string; userId?: string }, options: StartImpersonationOptions = {}): Promise<void> {
+    if (!this.isLoggedIn()) {
+      throw new UserNotLoggedInError();
+    }
+
+    if (!this.config.impersonation?.enabled) {
+      throw new ImpersonationDisabledError();
+    }
+
+    if (this.isImpersonating()) {
+      throw new AlreadyImpersonatingError();
+    }
+
+    const actor = await this.getAuthAccount();
+    if (!actor) {
+      throw new UserNotFoundError();
+    }
+
+    const target = await this.findAccountByIdentifier(identifier);
+    if (!target) {
+      throw new UserNotFoundError();
+    }
+
+    if (target.id === actor.id) {
+      await this.activityLogger.logActivity(actor.id, AuthActivityAction.ImpersonationRejected, this.req, false, { reason: "self_impersonation", targetAccountId: target.id });
+      throw new ImpersonationNotAllowedError();
+    }
+
+    // fail closed if the policy hook throws - never silently allow impersonation when the
+    // policy can't be evaluated. preserves the underlying error message in audit metadata.
+    let allowed = false;
+    try {
+      allowed = (await this.config.impersonation.canImpersonate?.(actor, target)) ?? false;
+    } catch (err: any) {
+      await this.activityLogger.logActivity(actor.id, AuthActivityAction.ImpersonationRejected, this.req, false, {
+        reason: "policy_error",
+        targetAccountId: target.id,
+        policyError: err?.message ?? String(err),
+      });
+      throw new ImpersonationNotAllowedError();
+    }
+
+    if (!allowed) {
+      await this.activityLogger.logActivity(actor.id, AuthActivityAction.ImpersonationRejected, this.req, false, { reason: "denied", targetAccountId: target.id });
+      throw new ImpersonationNotAllowedError();
+    }
+
+    // resolve ttl: explicit option wins, then config default, capped by config.maxTtl
+    const requestedMs = options.ttl !== undefined ? ms(options.ttl) : this.config.impersonation.defaultTtl ? ms(this.config.impersonation.defaultTtl) : null;
+    const maxMs = this.config.impersonation.maxTtl ? ms(this.config.impersonation.maxTtl) : null;
+    const effectiveMs = requestedMs !== null && maxMs !== null ? Math.min(requestedMs, maxMs) : (requestedMs ?? maxMs);
+    const expiresAt = effectiveMs !== null ? new Date(Date.now() + effectiveMs) : undefined;
+
+    const actorSnapshot: ImpersonationActor = {
+      accountId: actor.id,
+      userId: actor.user_id,
+      email: actor.email,
+      rolemask: actor.rolemask,
+      forceLogout: actor.force_logout,
+      startedAt: new Date(),
+      expiresAt,
+      reason: options.reason,
+    };
+
+    const newSession: AuthSession = {
+      loggedIn: true,
+      accountId: target.id,
+      userId: target.user_id,
+      email: target.email,
+      status: target.status,
+      rolemask: target.rolemask,
+      remembered: false,
+      lastResync: new Date(),
+      lastRememberCheck: new Date(),
+      forceLogout: target.force_logout,
+      verified: target.verified,
+      hasPassword: target.password !== null,
+      shouldForceLogout: false,
+      actor: actorSnapshot,
+    };
+
+    await this.regenerateSessionWith(newSession);
+
+    // logged after session mutation so actor_account_id auto-pickup resolves to the admin
+    await this.activityLogger.logActivity(target.id, AuthActivityAction.ImpersonationStarted, this.req, true, {
+      targetAccountId: target.id,
+      targetEmail: target.email,
+      reason: options.reason,
+      expiresAt: expiresAt?.toISOString(),
+    });
+  }
+
+  /**
+   * Stop the current impersonation session and revert to the actor's identity.
+   * The session id is regenerated.
+   *
+   * @throws {NotImpersonatingError} No active impersonation session
+   */
+  async stopImpersonation(): Promise<void> {
+    if (!this.isImpersonating()) {
+      throw new NotImpersonatingError();
+    }
+    await this.stopImpersonationInternal("manual");
+  }
+
+  // internal stop that also handles auto-revert paths (expiry, target_gone) from resync
+  private async stopImpersonationInternal(cause: "manual" | "expired" | "target_gone"): Promise<void> {
+    const actor = this.req.session.auth!.actor!;
+    const targetAccountId = this.req.session.auth!.accountId;
+    const targetEmail = this.req.session.auth!.email;
+
+    // log BEFORE clearing actor so the audit row carries actor_account_id.
+    // when the target has been deleted the account_id FK would fail, so log against null in that case.
+    const action = cause === "expired" ? AuthActivityAction.ImpersonationExpired : AuthActivityAction.ImpersonationStopped;
+    const logAccountId = cause === "target_gone" ? null : targetAccountId;
+    await this.activityLogger.logActivity(logAccountId, action, this.req, true, {
+      targetAccountId,
+      targetEmail,
+      cause,
+      startedAt: new Date(actor.startedAt).toISOString(),
+    });
+
+    const actorAccount = await this.queries.findAccountById(actor.accountId);
+    if (!actorAccount) {
+      // actor account is gone - nothing to revert to
+      this.req.session.auth = undefined;
+      return;
+    }
+
+    const newSession: AuthSession = {
+      loggedIn: true,
+      accountId: actorAccount.id,
+      userId: actorAccount.user_id,
+      email: actorAccount.email,
+      status: actorAccount.status,
+      rolemask: actorAccount.rolemask,
+      remembered: false,
+      lastResync: new Date(),
+      lastRememberCheck: new Date(),
+      forceLogout: actorAccount.force_logout,
+      verified: actorAccount.verified,
+      hasPassword: actorAccount.password !== null,
+      shouldForceLogout: false,
+    };
+
+    await this.regenerateSessionWith(newSession);
+  }
+
+  private async regenerateSessionWith(newAuth: AuthSession): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      if (!this.req.session?.regenerate) {
+        this.req.session.auth = newAuth;
+        resolve();
+        return;
+      }
+
+      this.req.session.regenerate((err: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        this.req.session.auth = newAuth;
+        this.req.session.save((saveErr: any) => {
+          if (saveErr) {
+            reject(saveErr);
+            return;
+          }
+          resolve();
+        });
+      });
+    });
   }
 }

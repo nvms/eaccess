@@ -139,3 +139,29 @@ export class TwoFactorSetupIncompleteError extends AuthError {
     super("Two-factor authentication setup is not complete");
   }
 }
+
+// impersonation errors
+
+export class ImpersonationDisabledError extends AuthError {
+  constructor() {
+    super("Impersonation is not enabled in this configuration");
+  }
+}
+
+export class ImpersonationNotAllowedError extends AuthError {
+  constructor() {
+    super("Impersonation is not permitted for this actor and target");
+  }
+}
+
+export class AlreadyImpersonatingError extends AuthError {
+  constructor() {
+    super("An impersonation session is already active");
+  }
+}
+
+export class NotImpersonatingError extends AuthError {
+  constructor() {
+    super("No active impersonation session");
+  }
+}

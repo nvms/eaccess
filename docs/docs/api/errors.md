@@ -57,6 +57,15 @@ All errors extend `AuthError`. You can catch specific types with `instanceof` or
 |-------|------|
 | `UserNotLoggedInError` | Action requires an authenticated session |
 
+## Impersonation
+
+| Error | When |
+|-------|------|
+| `ImpersonationDisabledError` | `config.impersonation.enabled` is not `true` |
+| `ImpersonationNotAllowedError` | `canImpersonate` returned false, or the target is the actor |
+| `AlreadyImpersonatingError` | Tried to start while already impersonating |
+| `NotImpersonatingError` | Called `stopImpersonation` outside an impersonation session |
+
 ## Catching Errors
 
 ```typescript

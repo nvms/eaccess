@@ -86,15 +86,19 @@ export class ActivityLogger {
     const ip = this.getIpAddress(req);
     const parsed = this.parseUserAgent(userAgent);
 
+    // auto-pick up actor when an impersonation session is active so every existing
+    // log call site is impersonation-aware without changes
+    const actorAccountId = (req as any).session?.auth?.actor?.accountId ?? null;
+
     try {
       // insert new activity log entry
       await this.config.db.query(
         `
-        INSERT INTO ${this.activityTable} 
-        (account_id, action, ip_address, user_agent, browser, os, device, success, metadata)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO ${this.activityTable}
+        (account_id, actor_account_id, action, ip_address, user_agent, browser, os, device, success, metadata)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         `,
-        [accountId, action, ip, userAgent, parsed.browser, parsed.os, parsed.device, success, Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null],
+        [accountId, actorAccountId, action, ip, userAgent, parsed.browser, parsed.os, parsed.device, success, Object.keys(metadata).length > 0 ? JSON.stringify(metadata) : null],
       );
 
       // occasionally cleanup old entries (1% chance per insert to avoid performance impact)

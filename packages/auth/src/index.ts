@@ -29,6 +29,9 @@ export type {
   TwoFactorSetupResult,
   TwoFactorChallenge,
   AuthenticateRequestResult,
+  ImpersonationActor,
+  ImpersonationInfo,
+  StartImpersonationOptions,
 } from "./types.js";
 
 export { AuthStatus, AuthRole, AuthActivityAction, TwoFactorMechanism } from "./types.js";
@@ -56,6 +59,10 @@ export {
   TwoFactorAlreadyEnabledError,
   InvalidBackupCodeError,
   TwoFactorSetupIncompleteError,
+  ImpersonationDisabledError,
+  ImpersonationNotAllowedError,
+  AlreadyImpersonatingError,
+  NotImpersonatingError,
 } from "./errors.js";
 
 export { isValidEmail, validateEmail } from "./util.js";

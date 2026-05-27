@@ -106,6 +106,7 @@ export async function createAuthTables(config: AuthConfig): Promise<void> {
     CREATE TABLE IF NOT EXISTS ${activityTable} (
       id SERIAL PRIMARY KEY,
       account_id INTEGER,
+      actor_account_id INTEGER,
       action VARCHAR(255) NOT NULL,
       ip_address INET,
       user_agent TEXT,
@@ -115,13 +116,31 @@ export async function createAuthTables(config: AuthConfig): Promise<void> {
       success BOOLEAN DEFAULT TRUE,
       metadata JSONB,
       created_at TIMESTAMPTZ DEFAULT NOW(),
-      CONSTRAINT fk_${prefix}activity_log_account 
-        FOREIGN KEY (account_id) REFERENCES ${accountsTable}(id) ON DELETE CASCADE
+      CONSTRAINT fk_${prefix}activity_log_account
+        FOREIGN KEY (account_id) REFERENCES ${accountsTable}(id) ON DELETE CASCADE,
+      CONSTRAINT fk_${prefix}activity_log_actor
+        FOREIGN KEY (actor_account_id) REFERENCES ${accountsTable}(id) ON DELETE SET NULL
     )
+  `);
+
+  // migration for pre-existing deployments that have activity_log without actor_account_id
+  await db.query(`ALTER TABLE ${activityTable} ADD COLUMN IF NOT EXISTS actor_account_id INTEGER`);
+  await db.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'fk_${prefix}activity_log_actor'
+      ) THEN
+        ALTER TABLE ${activityTable}
+          ADD CONSTRAINT fk_${prefix}activity_log_actor
+          FOREIGN KEY (actor_account_id) REFERENCES ${accountsTable}(id) ON DELETE SET NULL;
+      END IF;
+    END$$;
   `);
 
   await db.query(`CREATE INDEX IF NOT EXISTS idx_${prefix}activity_log_created_at ON ${activityTable}(created_at DESC)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_${prefix}activity_log_account_id ON ${activityTable}(account_id)`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_${prefix}activity_log_actor_account_id ON ${activityTable}(actor_account_id)`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_${prefix}activity_log_action ON ${activityTable}(action)`);
 
   const twoFactorMethodsTable = `${prefix}2fa_methods`;

@@ -49,4 +49,9 @@ install:
 	cd packages/auth && npm install
 	cd packages/admin && npm install
 
-.PHONY: up down down-volumes logs server client test test-watch build-auth build-admin build install
+# ---- docs ----
+
+docs:
+	$(MAKE) -C docs docs
+
+.PHONY: up down down-volumes logs server client test test-watch build-auth build-admin build install docs
