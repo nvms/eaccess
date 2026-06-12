@@ -1,10 +1,37 @@
 import type { AuthConfig } from "@eaccess/auth";
 import { AuthRole } from "@eaccess/auth";
 
+export interface AdminAccessOptions {
+  /**
+   * Rolemask granting access to the admin UI in addition to the built-in
+   * Admin role. Any overlapping bit qualifies, so a combined mask like
+   * `Roles.admin | Roles.developer` admits users holding either role.
+   */
+  accessRole?: number;
+}
+
+/**
+ * Shared access check: Admin always qualifies; otherwise any single role bit
+ * from options.accessRole does. hasRole() requires every bit of the mask it
+ * is given, so the mask is checked bit by bit.
+ */
+export async function canAccessAdmin(req: any, options: AdminAccessOptions = {}): Promise<boolean> {
+  if (!req.auth?.isLoggedIn()) return false;
+  if (await req.auth.isAdmin()) return true;
+
+  let mask = options.accessRole ?? 0;
+  while (mask) {
+    const bit = mask & -mask;
+    if (await req.auth.hasRole(bit)) return true;
+    mask &= ~bit;
+  }
+  return false;
+}
+
 /**
  * Auth status endpoint that can be shared between dev-server and middleware
  */
-export function createAuthStatusHandler(_authConfig: AuthConfig) {
+export function createAuthStatusHandler(_authConfig: AuthConfig, options: AdminAccessOptions = {}) {
   return async (req: any, res: any) => {
     try {
       const isLoggedIn = req.auth?.isLoggedIn();
@@ -13,7 +40,7 @@ export function createAuthStatusHandler(_authConfig: AuthConfig) {
 
       if (isLoggedIn) {
         email = req.auth.getEmail();
-        isAdmin = await req.auth.isAdmin();
+        isAdmin = await canAccessAdmin(req, options);
       }
 
       res.json({

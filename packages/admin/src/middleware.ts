@@ -3,7 +3,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import type { AuthConfig } from "@eaccess/auth";
 import { createAdminRoutes } from "./admin-routes.js";
-import { createAuthStatusHandler, createLoginHandler, createLogoutHandler } from "./auth-check.js";
+import { createAuthStatusHandler, createLoginHandler, createLogoutHandler, canAccessAdmin, type AdminAccessOptions } from "./auth-check.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -12,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * @param authConfig - The same AuthConfig used with easy-auth
  * @returns Express router with admin routes
  */
-export function createAdminUI(authConfig: AuthConfig) {
+export function createAdminUI(authConfig: AuthConfig, options: AdminAccessOptions = {}) {
   const router = express.Router();
 
   // Serve static assets from built files
@@ -20,7 +20,7 @@ export function createAdminUI(authConfig: AuthConfig) {
   router.use("/assets", express.static(path.join(staticPath, "assets")));
 
   // Create auth handlers
-  const authStatusHandler = createAuthStatusHandler(authConfig);
+  const authStatusHandler = createAuthStatusHandler(authConfig, options);
   const loginHandler = createLoginHandler(authConfig, { enableAdminCreation: true });
   const logoutHandler = createLogoutHandler(authConfig);
 
@@ -30,7 +30,7 @@ export function createAdminUI(authConfig: AuthConfig) {
   router.post("/api/logout", logoutHandler);
 
   // Protected admin routes
-  router.use("/api", createAdminRoutes(authConfig));
+  router.use("/api", createAdminRoutes(authConfig, options));
 
   // Serve the SPA for all non-API routes
   router.get(/.*/, async (req: any, res: any) => {
@@ -41,7 +41,7 @@ export function createAdminUI(authConfig: AuthConfig) {
       }
 
       const isLoggedIn = req.auth?.isLoggedIn();
-      const isAdmin = isLoggedIn ? await req.auth.isAdmin() : false;
+      const isAdmin = isLoggedIn ? await canAccessAdmin(req, options) : false;
 
       if (!isLoggedIn || !isAdmin) {
         // For non-API routes, redirect to login (use req.baseUrl to get the mount point)

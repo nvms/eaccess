@@ -2,17 +2,18 @@ import express from "express";
 import type { AuthConfig } from "@eaccess/auth";
 import { TwoFactorManager, AuthRole, TotpProvider } from "@eaccess/auth";
 import crypto from "crypto";
+import { canAccessAdmin, type AdminAccessOptions } from "./auth-check.js";
 
 /**
  * Middleware to check admin access
  */
-export const createRequireAdmin = () => async (req: any, res: any, next: any) => {
+export const createRequireAdmin = (options: AdminAccessOptions = {}) => async (req: any, res: any, next: any) => {
   try {
     if (!req.auth?.isLoggedIn()) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    if (!(await req.auth.isAdmin())) {
+    if (!(await canAccessAdmin(req, options))) {
       return res.status(403).json({ error: "Admin access required" });
     }
 
@@ -53,9 +54,9 @@ function parseUserAgent(userAgent: string | undefined) {
 /**
  * Create admin API routes that can be shared between dev-server and middleware
  */
-export function createAdminRoutes(authConfig: AuthConfig) {
+export function createAdminRoutes(authConfig: AuthConfig, options: AdminAccessOptions = {}) {
   const router = express.Router();
-  const requireAdmin = createRequireAdmin();
+  const requireAdmin = createRequireAdmin(options);
 
   // Apply admin check to all routes
   router.use(requireAdmin);
