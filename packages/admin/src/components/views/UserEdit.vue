@@ -20,7 +20,7 @@
                   <div v-if="!isEditingUserId" class="text-base font-light font-mono text-neutral-900 dark:text-neutral-100 truncate leading-9" :title="user.user_id">
                     {{ user.user_id }}
                   </div>
-                  <Input v-else v-model="editUserId" class="text-base font-light font-mono flex-1 min-w-0" :disabled="isSavingUserId" @keyup.enter="saveUserId" @keyup.escape="cancelEditUserId" />
+                  <Input v-else v-model="editUserId" class="text-base font-light font-mono flex-1 min-w-0" :disabled="isSavingUserId" @keyup.enter="saveUserId" @keydown.escape="cancelEditUserId" />
                   <Button v-if="!isEditingUserId" variant="ghost" class="text-neutral-500 shrink-0" @click="startEditUserId"> Edit </Button>
                   <div v-else class="flex gap-1 shrink-0">
                     <Button variant="outline" @click="saveUserId" :disabled="isSavingUserId || !editUserId.trim()">
