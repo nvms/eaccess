@@ -1,14 +1,15 @@
 <template>
   <div class="relative" ref="filterContainer">
-    <Button @click="togglePopover" class="gap-2 text-neutral-500 rounded-full cursor-pointer" variant="outline" size="sm">
-      <Icon icon="oui:app-users-roles" class="w-4 h-4" />
-      <span>{{ filterLabel }}</span>
-      <Icon icon="mdi:chevron-down" class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': isOpen }" />
-
-      <button @click.stop="removeFilter" class="w-4 h-4 rounded-full text-neutral-500 hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center transition-colors">
-        <Icon icon="mdi:close" class="w-3 h-3" />
+    <div class="inline-flex h-8 items-stretch overflow-hidden rounded-md border bg-card shadow-xs">
+      <button type="button" class="flex cursor-pointer items-center gap-1.5 px-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground" @click="togglePopover">
+        <Icon icon="oui:app-users-roles" class="size-3.5" />
+        <span>{{ filterLabel }}</span>
+        <Icon icon="mdi:chevron-down" class="size-3.5 transition-transform duration-200" :class="{ 'rotate-180': isOpen }" />
       </button>
-    </Button>
+      <button type="button" class="flex cursor-pointer items-center border-l px-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-destructive" aria-label="Remove filter" @click="removeFilter">
+        <Icon icon="mdi:close" class="size-3.5" />
+      </button>
+    </div>
 
     <Transition enter-active-class="animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-200" leave-active-class="animate-out fade-out-0 zoom-out-95 slide-out-to-top-2 duration-150">
       <div v-if="isOpen" class="absolute top-full left-0 mt-2 w-80 bg-popover border border-border rounded-md shadow-md z-50 origin-top-left">
@@ -33,7 +34,6 @@ import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Icon } from "@iconify/vue";
 import { useUsersStore } from "@/stores/users";
-import { Button } from "../ui/button";
 
 const usersStore = useUsersStore();
 

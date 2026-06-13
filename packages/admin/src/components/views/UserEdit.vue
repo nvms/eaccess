@@ -1,90 +1,86 @@
 <template>
-  <div class="min-h-screen flex flex-col">
+  <div class="min-h-screen">
     <AppNavbar />
-    <div class="container mx-auto">
-      <div class="space-y-6">
-        <div v-if="user" class="w-full space-y-6">
-          <!-- User Info Section -->
-          <div class="mb-8">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-              <div class="min-w-0">
-                <div class="text-xs font-medium text-neutral-400 dark:text-neutral-500 mb-1">Email</div>
-                <div class="text-base font-light text-neutral-900 dark:text-neutral-100 truncate leading-9" :title="user.email">
-                  {{ user.email }}
-                </div>
-              </div>
 
-              <div class="min-w-0">
-                <div class="text-xs font-medium text-neutral-400 dark:text-neutral-500 mb-1">Foreign user ID</div>
-                <div class="flex items-center gap-2 min-w-0">
-                  <div v-if="!isEditingUserId" class="text-base font-light font-mono text-neutral-900 dark:text-neutral-100 truncate leading-9" :title="user.user_id">
-                    {{ user.user_id }}
-                  </div>
-                  <Input v-else v-model="editUserId" class="text-base font-light font-mono flex-1 min-w-0" :disabled="isSavingUserId" @keyup.enter="saveUserId" @keydown.escape="cancelEditUserId" />
-                  <Button v-if="!isEditingUserId" variant="ghost" class="text-neutral-500 shrink-0" @click="startEditUserId"> Edit </Button>
-                  <div v-else class="flex gap-1 shrink-0">
-                    <Button variant="outline" @click="saveUserId" :disabled="isSavingUserId || !editUserId.trim()">
-                      {{ isSavingUserId ? "Saving..." : "Save" }}
-                    </Button>
-                    <Button variant="outline" @click="cancelEditUserId" :disabled="isSavingUserId"> Cancel </Button>
-                  </div>
-                </div>
-              </div>
+    <main class="container mx-auto px-6 py-8">
+      <router-link to="/users" class="inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
+        <ChevronLeft class="size-4" />
+        Users
+      </router-link>
 
-              <div>
-                <div class="text-xs font-medium text-neutral-400 dark:text-neutral-500 mb-1">Registered</div>
-                <div class="text-base font-light text-neutral-900 dark:text-neutral-100 leading-9">
-                  {{ formatDate(user.registered) }}
-                </div>
-              </div>
-
-              <div>
-                <div class="text-xs font-medium text-neutral-400 dark:text-neutral-500 mb-1">Last Login</div>
-                <div class="text-base font-light text-neutral-900 dark:text-neutral-100 leading-9">
-                  {{ formatDate(user.last_login) }}
-                </div>
-              </div>
+      <div v-if="user" class="mt-4">
+        <header class="flex items-center gap-4">
+          <div class="flex size-12 shrink-0 select-none items-center justify-center rounded-full bg-muted text-lg font-medium text-muted-foreground">
+            {{ user.email.charAt(0).toUpperCase() }}
+          </div>
+          <div class="min-w-0">
+            <h1 class="truncate text-xl font-semibold tracking-tight">{{ user.email }}</h1>
+            <div class="mt-0.5 flex items-center gap-2 text-sm text-muted-foreground">
+              <span class="size-1.5 rounded-full" :class="getStatusDotClass(user.status)" />
+              {{ getStatusName(user.status) }}
             </div>
           </div>
+        </header>
 
-          <!-- Tabs Section -->
-          <Tabs default-value="credentials" class="w-full space-y-4">
-            <div class="flex items-center">
-              <TabsList class="border [box-shadow:inset_0_0_0_3px_white] dark:[box-shadow:inset_0_0_0_3px_black]">
-                <TabsTrigger value="credentials"> Credentials </TabsTrigger>
-                <TabsTrigger value="mfa"> MFA </TabsTrigger>
-                <TabsTrigger value="access-roles"> Access & Roles </TabsTrigger>
-                <TabsTrigger value="actions"> Moderation </TabsTrigger>
-              </TabsList>
-              <div class="space-x-2">
-                <!-- <Button variant="outline">Invalidate all authenticated sessions</Button>
-                <Button variant="destructive">Delete</Button> -->
-              </div>
-            </div>
+        <dl class="mt-6 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-3">
+          <div class="min-w-0">
+            <dt class="text-xs font-medium text-muted-foreground">Foreign user ID</dt>
+            <dd class="mt-1 flex h-9 items-center gap-1">
+              <template v-if="!isEditingUserId">
+                <span class="truncate font-mono text-sm" :title="user.user_id">{{ user.user_id }}</span>
+                <Button variant="ghost" size="icon" class="size-7 shrink-0 text-muted-foreground" aria-label="Edit foreign user ID" @click="startEditUserId">
+                  <Pencil class="size-3.5" />
+                </Button>
+              </template>
+              <template v-else>
+                <Input v-model="editUserId" class="h-8 min-w-0 flex-1 font-mono text-sm" :disabled="isSavingUserId" @keyup.enter="saveUserId" @keydown.escape="cancelEditUserId" />
+                <Button variant="outline" size="sm" class="h-8 shrink-0" :disabled="isSavingUserId || !editUserId.trim()" @click="saveUserId">
+                  {{ isSavingUserId ? "Saving..." : "Save" }}
+                </Button>
+                <Button variant="ghost" size="sm" class="h-8 shrink-0" :disabled="isSavingUserId" @click="cancelEditUserId"> Cancel </Button>
+              </template>
+            </dd>
+          </div>
 
-            <TabsContent value="credentials">
-              <UserCredentials :user="user" @refresh="loadUser" />
-            </TabsContent>
+          <div>
+            <dt class="text-xs font-medium text-muted-foreground">Registered</dt>
+            <dd class="mt-1 flex h-9 items-center text-sm">{{ formatDate(user.registered) }}</dd>
+          </div>
 
-            <TabsContent value="mfa">
-              <UserMFA :user="user" @refresh="loadUser" />
-            </TabsContent>
+          <div>
+            <dt class="text-xs font-medium text-muted-foreground">Last sign-in</dt>
+            <dd class="mt-1 flex h-9 items-center text-sm">{{ formatDate(user.last_login) }}</dd>
+          </div>
+        </dl>
 
-            <TabsContent value="access-roles">
-              <UserAccessRoles :user="user" :temp-rolemask="tempRolemask" :temp-status="tempStatus" @update:temp-rolemask="tempRolemask = $event" @update:temp-status="tempStatus = $event" @load-user="loadUser" />
-            </TabsContent>
+        <Tabs default-value="credentials" class="mt-8">
+          <TabsList class="h-auto w-full justify-start gap-6 rounded-none border-b bg-transparent p-0">
+            <TabsTrigger v-for="tab in tabs" :key="tab.value" :value="tab.value" class="-mb-px flex-none rounded-none border-b-2 border-transparent px-1 pb-2.5 pt-0 text-sm text-muted-foreground shadow-none data-[state=active]:border-foreground data-[state=active]:bg-transparent data-[state=active]:shadow-none dark:data-[state=active]:border-foreground dark:data-[state=active]:bg-transparent!">
+              {{ tab.label }}
+            </TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="actions">
-              <UserActions :user="user" />
-            </TabsContent>
-          </Tabs>
-        </div>
+          <TabsContent value="credentials" class="mt-6">
+            <UserCredentials :user="user" @refresh="loadUser" />
+          </TabsContent>
 
-        <div v-if="!user && !isLoading" class="text-center py-8 text-muted-foreground">User not found</div>
+          <TabsContent value="mfa" class="mt-6">
+            <UserMFA :user="user" @refresh="loadUser" />
+          </TabsContent>
 
-        <div v-if="isLoading" class="text-center py-8 text-muted-foreground">Loading user...</div>
+          <TabsContent value="access-roles" class="mt-6">
+            <UserAccessRoles :user="user" :temp-rolemask="tempRolemask" :temp-status="tempStatus" @update:temp-rolemask="tempRolemask = $event" @update:temp-status="tempStatus = $event" @load-user="loadUser" />
+          </TabsContent>
+
+          <TabsContent value="actions" class="mt-6">
+            <UserActions :user="user" />
+          </TabsContent>
+        </Tabs>
       </div>
-    </div>
+
+      <div v-if="!user && !isLoading" class="py-16 text-center text-sm text-muted-foreground">User not found</div>
+      <div v-if="isLoading && !user" class="py-16 text-center text-sm text-muted-foreground">Loading user...</div>
+    </main>
   </div>
 </template>
 
@@ -95,11 +91,13 @@ import AppNavbar from "../AppNavbar.vue";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ChevronLeft, Pencil } from "lucide-vue-next";
 import UserCredentials from "./user-edit/UserCredentials.vue";
 import UserMFA from "./user-edit/UserMFA.vue";
 import UserAccessRoles from "./user-edit/UserAccessRoles.vue";
 import UserActions from "./user-edit/UserActions.vue";
 import { useUsersStore, type User } from "@/stores/users";
+import { formatDate, getStatusDotClass, getStatusName } from "@/lib/display";
 import { toast } from "vue-sonner";
 
 const route = useRoute();
@@ -110,60 +108,47 @@ const isLoading = ref(false);
 const tempRolemask = ref(0);
 const tempStatus = ref(0);
 
-// User ID editing state
 const isEditingUserId = ref(false);
 const editUserId = ref("");
 const isSavingUserId = ref(false);
 
 const userId = computed(() => route.params.id as string);
 
-onMounted(async () => {
-  await loadUser();
-});
+const tabs = [
+  { value: "credentials", label: "Credentials" },
+  { value: "mfa", label: "MFA" },
+  { value: "access-roles", label: "Access & roles" },
+  { value: "actions", label: "Moderation" },
+];
 
-// Watch for route parameter changes to reload user data
-watch(
-  () => route.params.id,
-  async (newId, oldId) => {
-    if (newId !== oldId) {
-      await loadUser();
-    }
-  },
-  { immediate: false },
-);
+onMounted(loadUser);
+
+watch(userId, async (newId, oldId) => {
+  if (newId !== oldId) {
+    await loadUser();
+  }
+});
 
 async function loadUser() {
   isLoading.value = true;
   try {
-    // First try to find user in current store
-    let foundUser = usersStore.users.find((u) => u.id === parseInt(userId.value));
+    const response = await fetch(`/admin/api/users/${userId.value}`, {
+      credentials: "include",
+    });
 
-    if (!foundUser) {
-      // If not found, fetch directly from API
-      const response = await fetch(`/admin/api/users/${userId.value}`, {
-        credentials: "include",
-      });
-
-      if (response.ok) {
-        foundUser = await response.json();
-      }
-    }
-
-    if (foundUser) {
-      user.value = foundUser;
-      tempRolemask.value = foundUser.rolemask;
-      tempStatus.value = foundUser.status;
+    if (response.ok) {
+      const freshUser: User = await response.json();
+      user.value = freshUser;
+      tempRolemask.value = freshUser.rolemask;
+      tempStatus.value = freshUser.status;
+    } else {
+      user.value = null;
     }
   } catch (error) {
     console.error("Failed to load user:", error);
   } finally {
     isLoading.value = false;
   }
-}
-
-function formatDate(dateString: string | null) {
-  if (!dateString) return "Never";
-  return new Date(dateString).toLocaleString();
 }
 
 function startEditUserId() {
@@ -189,7 +174,6 @@ async function saveUserId() {
     });
     isEditingUserId.value = false;
     editUserId.value = "";
-    // Reload user to get fresh data
     await loadUser();
   } catch (error: any) {
     toast.error("Failed to update user ID", {

@@ -1,5 +1,5 @@
 <template>
-  <div class="space-x-2 flex items-center">
+  <div class="flex flex-wrap items-center gap-2">
     <RoleFilter v-if="filtersStore.hasActiveFilter('role')" :config="filtersStore.getActiveFilter('role')?.config" @update="filtersStore.updateFilter('role', $event)" @remove="filtersStore.removeFilter('role')" />
     <MfaFilter v-if="filtersStore.hasActiveFilter('mfa')" :config="filtersStore.getActiveFilter('mfa')?.config" @update="filtersStore.updateFilter('mfa', $event)" @remove="filtersStore.removeFilter('mfa')" />
     <StatusFilter v-if="filtersStore.hasActiveFilter('status')" :config="filtersStore.getActiveFilter('status')?.config" @update="filtersStore.updateFilter('status', $event)" @remove="filtersStore.removeFilter('status')" />

@@ -1,75 +1,44 @@
 <script setup lang="ts">
 import { Icon } from "@iconify/vue";
-import { ref, onMounted } from "vue";
+import { useColorMode } from "@vueuse/core";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
-const currentTheme = ref<"light" | "dark" | "auto">("auto");
-
-const getSystemTheme = () => (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-
-const applyTheme = (theme: "light" | "dark" | "auto") => {
-  const root = document.documentElement;
-
-  if (theme === "auto") {
-    const systemTheme = getSystemTheme();
-    root.classList.toggle("dark", systemTheme === "dark");
-  } else {
-    root.classList.toggle("dark", theme === "dark");
-  }
-
-  localStorage.setItem("easyaccess-theme", theme);
-  currentTheme.value = theme;
-};
+const mode = useColorMode({ storageKey: "easyaccess-theme" });
 
 const switchTheme = (newTheme: "light" | "dark" | "auto") => {
   if (!document.startViewTransition) {
-    applyTheme(newTheme);
+    mode.value = newTheme;
     return;
   }
 
-  // Add class to identify this as a theme transition
-  document.documentElement.classList.add('theme-transition');
-  
-  document.startViewTransition(() => {
-    applyTheme(newTheme);
-  }).finished.finally(() => {
-    document.documentElement.classList.remove('theme-transition');
-  });
+  document.documentElement.classList.add("theme-transition");
+
+  document
+    .startViewTransition(() => {
+      mode.value = newTheme;
+    })
+    .finished.finally(() => {
+      document.documentElement.classList.remove("theme-transition");
+    });
 };
-
-onMounted(() => {
-  const savedTheme = localStorage.getItem("easyaccess-theme") as "light" | "dark" | "auto" | null;
-  const theme = savedTheme || "auto";
-  applyTheme(theme);
-
-  // Listen for system theme changes when in auto mode
-  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-  mediaQuery.addEventListener("change", () => {
-    if (currentTheme.value === "auto") {
-      applyTheme("auto");
-    }
-  });
-});
 </script>
 
 <template>
-  <div>
-    <DropdownMenu>
-      <DropdownMenuTrigger as-child>
-        <Button variant="outline" class="rounded-full" size="icon">
-          <Icon icon="radix-icons:moon" class="h-[1.2rem] w-[1.2rem] rotate-0 opacity-100 transition-all dark:-rotate-90 dark:opacity-0 duration-500" />
-          <Icon icon="radix-icons:sun" class="absolute h-[1.2rem] w-[1.2rem] rotate-90 opacity-0 transition-all dark:rotate-0 dark:opacity-100 duration-500" />
-          <span class="sr-only">Toggle theme</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent>
-        <DropdownMenuItem @click="switchTheme('light')"> Light </DropdownMenuItem>
-        <DropdownMenuItem @click="switchTheme('dark')"> Dark </DropdownMenuItem>
-        <DropdownMenuItem @click="switchTheme('auto')"> System </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  </div>
+  <DropdownMenu>
+    <DropdownMenuTrigger as-child>
+      <Button variant="ghost" size="icon" class="size-8 text-muted-foreground hover:text-foreground">
+        <Icon icon="radix-icons:moon" class="size-4 rotate-0 opacity-100 transition-all duration-500 dark:-rotate-90 dark:opacity-0" />
+        <Icon icon="radix-icons:sun" class="absolute size-4 rotate-90 opacity-0 transition-all duration-500 dark:rotate-0 dark:opacity-100" />
+        <span class="sr-only">Toggle theme</span>
+      </Button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align="end">
+      <DropdownMenuItem @select="switchTheme('light')"> Light </DropdownMenuItem>
+      <DropdownMenuItem @select="switchTheme('dark')"> Dark </DropdownMenuItem>
+      <DropdownMenuItem @select="switchTheme('auto')"> System </DropdownMenuItem>
+    </DropdownMenuContent>
+  </DropdownMenu>
 </template>
 
 <style>

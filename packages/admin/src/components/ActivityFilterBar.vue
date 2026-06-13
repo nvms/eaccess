@@ -1,5 +1,5 @@
 <template>
-  <div class="space-x-2 flex items-center">
+  <div class="flex flex-wrap items-center gap-2">
     <EventTypeFilter v-if="filtersStore.hasActiveFilter('eventType')" :config="filtersStore.getActiveFilter('eventType')?.config" @update="filtersStore.updateFilter('eventType', $event)" @remove="filtersStore.removeFilter('eventType')" />
     <BrowserFilter v-if="filtersStore.hasActiveFilter('browser')" :config="filtersStore.getActiveFilter('browser')?.config" @update="filtersStore.updateFilter('browser', $event)" @remove="filtersStore.removeFilter('browser')" />
     <OSFilter v-if="filtersStore.hasActiveFilter('os')" :config="filtersStore.getActiveFilter('os')?.config" @update="filtersStore.updateFilter('os', $event)" @remove="filtersStore.removeFilter('os')" />

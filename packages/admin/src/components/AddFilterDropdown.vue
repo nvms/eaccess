@@ -1,7 +1,7 @@
 <template>
   <div class="relative" ref="dropdownContainer">
-    <Button variant="outline" class="rounded-full text-neutral-500" size="sm" @click="toggleDropdown">
-      <Icon icon="mdi:plus" class="w-4 h-4" />
+    <Button variant="outline" class="h-8 border-dashed bg-transparent text-muted-foreground shadow-none hover:text-foreground dark:bg-transparent" size="sm" @click="toggleDropdown">
+      <Icon icon="mdi:plus" class="size-3.5" />
       Add filter
     </Button>
 

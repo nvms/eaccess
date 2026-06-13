@@ -1,14 +1,14 @@
 <template>
   <Dialog v-model:open="showCreateUserDialog">
     <DialogTrigger as-child>
-      <Button @click="showCreateUserDialog = true" variant="outline" size="sm">
-        <Plus class="h-4 w-4" />
-        Create User
+      <Button size="sm">
+        <Plus class="size-4" />
+        Create user
       </Button>
     </DialogTrigger>
     <DialogContent class="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Create New User</DialogTitle>
+        <DialogTitle>Create new user</DialogTitle>
         <DialogDescription> Create a new user with email and password authentication. </DialogDescription>
       </DialogHeader>
       <div class="space-y-4">

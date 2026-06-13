@@ -1,44 +1,33 @@
 <template>
-  <div class="space-y-4">
-    <div class="p-2 border rounded-xl bg-neutral-100 dark:bg-neutral-950 [box-shadow:inset_0_0_0_3px_white] dark:[box-shadow:inset_0_0_0_3px_black]">
-      <h3 class="text-lg mb-2 flex items-center justify-between">
-        <span>Account status</span>
-        <Icon icon="mdi:account-check" class="h-6 w-6 text-neutral-500" />
-      </h3>
-      <div class="bg-background p-3 border rounded shadow-xs">
-        <div class="text-sm text-neutral-500 mb-3">Only users with "Normal" status can log in. All other statuses will prevent authentication.</div>
-        <Select v-model="tempStatus" @update:model-value="saveStatus">
-          <SelectTrigger class="w-full">
-            <SelectValue :placeholder="usersStore.getStatusName(tempStatus)" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem :value="usersStore.AuthStatus.Normal"> Normal </SelectItem>
-            <SelectItem :value="usersStore.AuthStatus.Archived"> Archived </SelectItem>
-            <SelectItem :value="usersStore.AuthStatus.Banned"> Banned </SelectItem>
-            <SelectItem :value="usersStore.AuthStatus.Locked"> Locked </SelectItem>
-            <SelectItem :value="usersStore.AuthStatus.PendingReview"> Pending Review </SelectItem>
-            <SelectItem :value="usersStore.AuthStatus.Suspended"> Suspended </SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
+  <div class="divide-y rounded-lg border bg-card">
+    <section class="px-5 py-4">
+      <h3 class="text-sm font-medium">Account status</h3>
+      <p class="mt-0.5 text-xs text-muted-foreground">Only users with "Normal" status can log in. All other statuses prevent authentication.</p>
+      <Select v-model="tempStatus" @update:model-value="saveStatus">
+        <SelectTrigger class="mt-3 w-full max-w-xs">
+          <SelectValue :placeholder="getStatusName(tempStatus)" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="status in statusOptions" :key="status" :value="status">
+            {{ getStatusName(status) }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </section>
 
-    <div class="p-2 border rounded-xl bg-neutral-100 dark:bg-neutral-950 [box-shadow:inset_0_0_0_3px_white] dark:[box-shadow:inset_0_0_0_3px_black]">
-      <h3 class="text-lg mb-2 flex items-center justify-between">
-        <span>Roles</span>
-        <Icon icon="mdi:shield-account" class="h-6 w-6 text-neutral-500" />
-      </h3>
-      <div class="bg-background p-3 border rounded shadow-xs">
-        <div class="grid grid-cols-4 gap-3">
-          <div v-for="[roleName, roleValue] in Object.entries(usersStore.roles)" :key="roleName" class="flex items-center space-x-2">
-            <Checkbox :id="`role-${roleName}`" :model-value="hasRole(roleValue as number)" @update:model-value="toggleAndSaveRole(roleValue as number)" />
-            <label :for="`role-${roleName}`" class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-              {{ roleName }}
-            </label>
-          </div>
+    <section class="px-5 py-4">
+      <h3 class="text-sm font-medium">Roles</h3>
+      <p class="mt-0.5 text-xs text-muted-foreground">Changes are saved immediately.</p>
+      <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div v-for="[roleName, roleValue] in Object.entries(usersStore.roles)" :key="roleName" class="flex items-center gap-2">
+          <Checkbox :id="`role-${roleName}`" :model-value="hasRole(roleValue as number)" @update:model-value="toggleAndSaveRole(roleValue as number)" />
+          <label :for="`role-${roleName}`" class="cursor-pointer text-sm leading-none">
+            {{ roleName }}
+          </label>
         </div>
       </div>
-    </div>
+      <p v-if="Object.keys(usersStore.roles).length === 0" class="mt-3 text-sm text-muted-foreground">No roles configured.</p>
+    </section>
   </div>
 </template>
 
@@ -46,9 +35,9 @@
 import { ref, watch } from "vue";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useUsersStore, type User } from "@/stores/users";
+import { AuthStatus, useUsersStore, type User } from "@/stores/users";
+import { getStatusName } from "@/lib/display";
 import { toast } from "vue-sonner";
-import { Icon } from "@iconify/vue";
 
 const props = defineProps<{
   user: User;
@@ -64,10 +53,11 @@ const emit = defineEmits<{
 
 const usersStore = useUsersStore();
 
+const statusOptions = Object.values(AuthStatus);
+
 const tempStatus = ref(props.tempStatus);
 const tempRolemask = ref(props.tempRolemask);
 
-// Watch for prop changes and update local refs
 watch(
   () => props.tempRolemask,
   (newValue) => {
@@ -90,9 +80,9 @@ function hasRole(roleValue: number) {
 
 function toggleRole(roleValue: number) {
   if (tempRolemask.value & roleValue) {
-    tempRolemask.value &= ~roleValue; // Remove role
+    tempRolemask.value &= ~roleValue;
   } else {
-    tempRolemask.value |= roleValue; // Add role
+    tempRolemask.value |= roleValue;
   }
   emit("update:tempRolemask", tempRolemask.value);
 }
@@ -112,7 +102,6 @@ async function toggleAndSaveRole(roleValue: number) {
     });
     emit("loadUser");
   } catch (error: any) {
-    // Revert the change if the save failed
     toggleRole(roleValue);
     toast.error("Failed to update roles", {
       description: error.message,
@@ -128,7 +117,7 @@ async function saveStatus() {
   try {
     await usersStore.updateUserStatus(props.user.id, tempStatus.value);
     toast.success("Status updated", {
-      description: `Status for ${props.user.email} has been updated to ${usersStore.getStatusName(tempStatus.value)}.`,
+      description: `Status for ${props.user.email} has been updated to ${getStatusName(tempStatus.value)}.`,
     });
     emit("loadUser");
   } catch (error: any) {
